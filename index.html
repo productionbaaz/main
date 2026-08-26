@@ -318,8 +318,13 @@
 </head>
 <body>
 
-<!-- ============ PORTAL GATE (choose Manager/CEO vs Employee) ============ -->
-<div id="portalGate" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#0d1117,#161d26 60%,#11161c);">
+<!-- Backend URL control — always available, on every screen, regardless of portal mode -->
+<div style="position:fixed;top:12px;right:14px;z-index:999;">
+  <button class="btn-ghost" style="font-size:11.5px;padding:6px 10px;background:rgba(23,30,38,0.85);" onclick="promptApiBase()">⚙ Backend URL: <span id="apiBaseLabel">not set</span></button>
+</div>
+
+<!-- ============ PORTAL GATE (choose Manager/CEO vs Employee — only shown in gate mode) ============ -->
+<div id="portalGate" style="display:none;min-height:100vh;align-items:center;justify-content:center;background:linear-gradient(160deg,#0d1117,#161d26 60%,#11161c);">
   <div style="max-width:420px;width:100%;padding:24px;text-align:center;">
     <div class="mark" style="margin:0 auto 18px;width:42px;height:42px;">
       <svg viewBox="0 0 48 48" fill="none"><path d="M24 6 L40 20 L30 20 L38 34 L24 26 L10 34 L18 20 L8 20 Z" fill="none" stroke="#c99a3b" stroke-width="1.6" stroke-linejoin="round"/></svg>
@@ -328,7 +333,6 @@
     <p style="color:var(--muted);font-size:13.5px;margin:0 0 28px;">Choose how you're signing in.</p>
     <button class="btn-primary" style="margin-bottom:12px;" onclick="showManagerAuth()">Manager / CEO</button>
     <button class="btn-ghost" style="width:100%;margin-bottom:18px;" onclick="showEmployeeAuth()">Employee</button>
-    <button class="btn-ghost" style="width:100%;font-size:12px;border:none;color:var(--muted-2);" onclick="promptApiBase()">⚙ Backend URL: <span id="apiBaseLabel">not set</span></button>
     <div id="gateMsg" style="display:none;margin-top:14px;font-size:12.5px;padding:10px 12px;border-radius:8px;"></div>
   </div>
 </div>
@@ -358,7 +362,7 @@
 
   <div class="auth-form-wrap">
     <div class="auth-card">
-      <button class="btn-ghost" style="margin-bottom:18px;font-size:12.5px;padding:7px 12px;" onclick="showGate()">← Back</button>
+      <button id="managerBackBtn" class="btn-ghost" style="margin-bottom:18px;font-size:12.5px;padding:7px 12px;" onclick="showGate()">← Back</button>
       <div class="tabs" id="authTabs">
         <button id="tabLogin" class="active" onclick="switchAuthTab('login')">Log in</button>
         <button id="tabSignup" onclick="switchAuthTab('signup')">Sign up</button>
@@ -420,7 +424,7 @@
 <div id="employeeAuthScreen" style="display:none;min-height:100vh;align-items:center;justify-content:center;background:linear-gradient(160deg,#0d1117,#161d26 60%,#11161c);">
   <div style="max-width:400px;width:100%;padding:24px;">
     <div class="auth-card">
-      <button class="btn-ghost" style="margin-bottom:18px;font-size:12.5px;padding:7px 12px;" onclick="showGate()">← Back</button>
+      <button id="employeeBackBtn" class="btn-ghost" style="margin-bottom:18px;font-size:12.5px;padding:7px 12px;" onclick="showGate()">← Back</button>
       <h2>Employee Login</h2>
       <p class="sub">Use the email and password your manager set up for you.</p>
       <div id="employeeAuthMsg" class="auth-msg"></div>
@@ -637,6 +641,12 @@
    on the backend.
    ============================================================ */
 
+/* This page's entry mode: 'employee' goes straight to Employee Login,
+   'manager' goes straight to Manager/CEO Login, 'gate' shows the chooser
+   screen with both buttons. Each deployed HTML file sets this to a fixed
+   value so the two portals can live at separate URLs with no chooser. */
+const PORTAL_MODE = 'employee';
+
 const LS_API_BASE = 'baaz_api_base';
 const LS_SESSION_CACHE = 'baaz_session_cache'; // { token, user }
 
@@ -837,7 +847,7 @@ async function handleLogout(){
   CACHE.token = null; CACHE.user = null; CACHE.sheets = {}; CACHE.registry = []; CACHE.employees = [];
   localStorage.removeItem(LS_SESSION_CACHE);
   document.getElementById('app').classList.remove('active');
-  showGate();
+  showEntryScreen();
   const le = document.getElementById('loginEmail'); if(le) le.value = '';
   const lp = document.getElementById('loginPassword'); if(lp) lp.value = '';
   const ee = document.getElementById('empLoginEmail'); if(ee) ee.value = '';
@@ -1707,8 +1717,20 @@ async function renderDashboard(){
 }
 
 /* ---------------- BOOT ---------------- */
+function showEntryScreen(){
+  if(PORTAL_MODE === 'employee') showEmployeeAuth();
+  else if(PORTAL_MODE === 'manager') showManagerAuth();
+  else showGate();
+}
+
 (function boot(){
   updateApiBaseLabel();
+  // dedicated single-purpose pages have nothing to "go back" to
+  const backBtns = [document.getElementById('managerBackBtn'), document.getElementById('employeeBackBtn')];
+  if(PORTAL_MODE !== 'gate'){
+    backBtns.forEach(b => { if(b) b.style.display = 'none'; });
+  }
+
   const cached = localStorage.getItem(LS_SESSION_CACHE);
   if(cached){
     try{
@@ -1721,13 +1743,12 @@ async function renderDashboard(){
       }).catch(() => {
         localStorage.removeItem(LS_SESSION_CACHE);
         CACHE.token = null; CACHE.user = null;
-        showGate();
+        showEntryScreen();
       });
       return;
-    }catch(e){ /* fall through to gate */ }
+    }catch(e){ /* fall through */ }
   }
-  if(location.hash === '#employee'){ showEmployeeAuth(); }
-  else { showGate(); }
+  showEntryScreen();
 })();
 
 </script>
