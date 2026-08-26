@@ -318,11 +318,6 @@
 </head>
 <body>
 
-<!-- Backend URL control — always available, on every screen, regardless of portal mode -->
-<div style="position:fixed;top:12px;right:14px;z-index:999;">
-  <button class="btn-ghost" style="font-size:11.5px;padding:6px 10px;background:rgba(23,30,38,0.85);" onclick="promptApiBase()">⚙ Backend URL: <span id="apiBaseLabel">not set</span></button>
-</div>
-
 <!-- ============ PORTAL GATE (choose Manager/CEO vs Employee — only shown in gate mode) ============ -->
 <div id="portalGate" style="display:none;min-height:100vh;align-items:center;justify-content:center;background:linear-gradient(160deg,#0d1117,#161d26 60%,#11161c);">
   <div style="max-width:420px;width:100%;padding:24px;text-align:center;">
@@ -650,26 +645,11 @@ const PORTAL_MODE = 'employee';
 const LS_API_BASE = 'baaz_api_base';
 const LS_SESSION_CACHE = 'baaz_session_cache'; // { token, user }
 
-/* ---------------- API base URL config ---------------- */
-function getApiBase(){ return localStorage.getItem(LS_API_BASE) || ''; }
-function setApiBase(url){ localStorage.setItem(LS_API_BASE, url.trim()); }
-function promptApiBase(){
-  const current = getApiBase();
-  const url = prompt('Paste your Apps Script Web App URL (ends in /exec):', current || '');
-  if(url === null) return;
-  setApiBase(url);
-  updateApiBaseLabel();
-  hideAuthMsg();
-  const empMsg = document.getElementById('employeeAuthMsg'); if(empMsg) empMsg.className = 'auth-msg';
-  // refresh whichever entry screen is currently showing, now that a URL is set
-  if(!document.getElementById('app').classList.contains('active')) showEntryScreen();
-}
-function updateApiBaseLabel(){
-  const el = document.getElementById('apiBaseLabel');
-  if(!el) return;
-  const base = getApiBase();
-  el.textContent = base ? (base.length > 34 ? base.slice(0,34)+'…' : base) : 'not set';
-}
+/* ---------------- API base URL ----------------
+   Fixed for this deployment — every device, every login (employee or
+   manager) uses this same backend automatically. Nothing to configure. */
+const BAAZ_API_BASE = 'https://script.google.com/macros/s/AKfycbz3GdN-lrKTtD7dOL8usQd9MK3Swpqxf2ynqWgrOAcGnxwjtVdegixqFQEslt3D0Ny8/exec';
+function getApiBase(){ return BAAZ_API_BASE; }
 function showGateMsg(text, type){
   const el = document.getElementById('gateMsg');
   if(!el) return;
@@ -740,7 +720,6 @@ const SHEET_ICONS = {
 
 /* ---------------- AUTH ---------------- */
 function showGate(){
-  updateApiBaseLabel();
   document.getElementById('portalGate').style.display = 'flex';
   document.getElementById('authScreen').style.display = 'none';
   document.getElementById('employeeAuthScreen').style.display = 'none';
@@ -750,11 +729,6 @@ async function showManagerAuth(){
   document.getElementById('portalGate').style.display = 'none';
   document.getElementById('authScreen').style.display = 'flex';
   document.getElementById('employeeAuthScreen').style.display = 'none';
-
-  if(!getApiBase()){
-    showAuthMsg('Backend URL is not set yet. Click ⚙ Backend URL (top right) and paste your Apps Script Web App URL, then try again.', 'err');
-    return;
-  }
 
   let signupClosed = false;
   try{
@@ -774,10 +748,6 @@ function showEmployeeAuth(){
   document.getElementById('portalGate').style.display = 'none';
   document.getElementById('authScreen').style.display = 'none';
   document.getElementById('employeeAuthScreen').style.display = 'flex';
-
-  if(!getApiBase()){
-    showEmpAuthMsg('Backend URL is not set yet. Click ⚙ Backend URL (top right) and paste your Apps Script Web App URL, then try again.', 'err');
-  }
 }
 
 function switchAuthTab(which){
@@ -1735,7 +1705,6 @@ function showEntryScreen(){
 }
 
 (function boot(){
-  updateApiBaseLabel();
   // dedicated single-purpose pages have nothing to "go back" to
   const backBtns = [document.getElementById('managerBackBtn'), document.getElementById('employeeBackBtn')];
   if(PORTAL_MODE !== 'gate'){
