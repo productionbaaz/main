@@ -673,13 +673,17 @@ async function apiCall(action, payload){
   }
   payload = payload || {};
   if(CACHE.token) payload.token = CACHE.token;
+  // GET, not POST: Apps Script's cross-origin support is reliable for GET
+  // but frequently strips the CORS header on POST responses, which the
+  // browser then reports as a CORS error even though the request itself
+  // ran fine on the server.
+  const url = base + '?data=' + encodeURIComponent(JSON.stringify({ action, payload }));
+  if(url.length > 7500){
+    throw new Error('That file/image is too large to send. Try a smaller image or a shorter CSV.');
+  }
   let res;
   try{
-    res = await fetch(base, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids a CORS preflight Apps Script can't answer
-      body: JSON.stringify({ action, payload })
-    });
+    res = await fetch(url, { method: 'GET' });
   }catch(err){
     throw new Error('Could not reach the backend. Check the Backend URL and your internet connection.');
   }
