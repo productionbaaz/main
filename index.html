@@ -659,6 +659,10 @@ function promptApiBase(){
   if(url === null) return;
   setApiBase(url);
   updateApiBaseLabel();
+  hideAuthMsg();
+  const empMsg = document.getElementById('employeeAuthMsg'); if(empMsg) empMsg.className = 'auth-msg';
+  // refresh whichever entry screen is currently showing, now that a URL is set
+  if(!document.getElementById('app').classList.contains('active')) showEntryScreen();
 }
 function updateApiBaseLabel(){
   const el = document.getElementById('apiBaseLabel');
@@ -743,10 +747,14 @@ function showGate(){
 }
 
 async function showManagerAuth(){
-  if(!getApiBase()){ showGateMsg('Set the Backend URL first (⚙ button above).', 'err'); return; }
   document.getElementById('portalGate').style.display = 'none';
   document.getElementById('authScreen').style.display = 'flex';
   document.getElementById('employeeAuthScreen').style.display = 'none';
+
+  if(!getApiBase()){
+    showAuthMsg('Backend URL is not set yet. Click ⚙ Backend URL (top right) and paste your Apps Script Web App URL, then try again.', 'err');
+    return;
+  }
 
   let signupClosed = false;
   try{
@@ -763,10 +771,13 @@ async function showManagerAuth(){
 }
 
 function showEmployeeAuth(){
-  if(!getApiBase()){ showGateMsg('Set the Backend URL first (⚙ button above).', 'err'); return; }
   document.getElementById('portalGate').style.display = 'none';
   document.getElementById('authScreen').style.display = 'none';
   document.getElementById('employeeAuthScreen').style.display = 'flex';
+
+  if(!getApiBase()){
+    showEmpAuthMsg('Backend URL is not set yet. Click ⚙ Backend URL (top right) and paste your Apps Script Web App URL, then try again.', 'err');
+  }
 }
 
 function switchAuthTab(which){
